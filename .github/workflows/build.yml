@@ -1,0 +1,124 @@
+name: Release
+on:
+  push:
+    tags:
+      - v**
+
+jobs:
+  build-windows:
+    runs-on: windows-2025
+    timeout-minutes: 40
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'zulu'
+          java-version: 21
+
+      - name: Create EXE
+        run: .\gradlew.bat packageReleaseExe
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: EtherDreamPlayer-windows
+          path: composeApp/build/compose/binaries/main-release/exe/*.exe
+
+  build-macos:
+    runs-on: macos-14
+    timeout-minutes: 40
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: 21
+
+      - name: Import signing certificate
+        uses: apple-actions/import-codesign-certs@v2
+        with:
+          p12-file-base64: ${{ secrets.CERTIFICATES_P12 }}
+          p12-password: ${{ secrets.CERTIFICATES_PASSWORD }}
+
+      - name: Create DMG
+        run: |
+          ./gradlew packageReleaseDmg
+
+      - name: Notarization
+        run: |
+          path=composeApp/build/compose/binaries/main-release/dmg/*.dmg
+          xcrun notarytool submit $path --apple-id $APPLE_ID_NOTARIZATION --password $NOTARIZATION_PWD --team-id $APPSTORE_TEAM_ID --wait
+          xcrun stapler staple $path
+        env:
+          APPLE_ID_NOTARIZATION: ${{ secrets.APPLE_ID_NOTARIZATION }}
+          APPSTORE_TEAM_ID: ${{ secrets.APPSTORE_TEAM_ID }}
+          NOTARIZATION_PWD: ${{ secrets.NOTARIZATION_PWD }}
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: EtherDreamPlayer-macos
+          path: composeApp/build/compose/binaries/main-release/dmg/*.dmg
+
+  release:
+    needs: [ build-windows, build-macos ]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Get Project Version and RC Number
+        id: get_version
+        run: |
+          VERSION=$(grep 'packageVersion = ' composeApp/build.gradle.kts | head -n 1 | sed -e 's/.*packageVersion = "\(.*\)"/\1/')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+          LAST_STABLE_TAG=$(git tag -l "v*" --sort=-version:refname | grep -v "rc" | head -n 1)
+          echo "Last stable tag: $LAST_STABLE_TAG"
+
+          if [ -z "$LAST_STABLE_TAG" ]; then
+            RC_NUMBER=1
+          else
+            RC_COUNT=$(git tag -l "v${VERSION}-rc*" | wc -l)
+            RC_NUMBER=$((RC_COUNT + 1))
+          fi
+
+          echo "rc_number=$RC_NUMBER" >> $GITHUB_OUTPUT
+          echo "RC Number: $RC_NUMBER"
+
+          FULL_TAG="v${VERSION}-rc${RC_NUMBER}"
+          echo "full_tag=$FULL_TAG" >> $GITHUB_OUTPUT
+          echo "Full tag: $FULL_TAG"
+
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create Draft Release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          prerelease: true
+          make_latest: false
+          name: Ether Dream Player v${{ steps.get_version.outputs.version }}
+          files: artifacts/**/*

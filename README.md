@@ -1,28 +1,21 @@
-This is a Kotlin Multiplatform project targeting Desktop (JVM).
+## Ether Dream WAV Player
 
-* [/composeApp](./composeApp/src) is for code that will be shared across your Compose Multiplatform applications.
-  It contains several subfolders:
-    - [commonMain](./composeApp/src/commonMain/kotlin) is for code that’s common for all targets.
-    - Other folders are for Kotlin code that will be compiled for only the platform indicated in the folder name.
-      For example, if you want to use Apple’s CoreCrypto for the iOS part of your Kotlin app,
-      the [iosMain](./composeApp/src/iosMain/kotlin) folder would be the right place for such calls.
-      Similarly, if you want to edit the Desktop (JVM) specific part, the [jvmMain](./composeApp/src/jvmMain/kotlin)
-      folder is the appropriate location.
+This is tool to play 8-channel WAV files to an Ether Dream, such as those backed up
+from an ADAT tape. Channels 7 and 8 are used as audio and played out the system audio
+device; channels 1-5 are X, Y, R, G, B, respectively. Channel 6 is ignored.
 
-### Build and Run Desktop (JVM) Application
+A preview window shows an approximation of the content in the file. This is not meant
+as an accurate visualization of what would be projected, but rather as an aid to identifying
+files and seeking for a position within the file.
 
-To build and run the development version of the desktop app, use the run configuration from the run widget
-in your IDE’s toolbar or run it directly from the terminal:
+Ether Dreams found on the network will appear in the list to the right of the preview window.
+If no Ether Dream is selected, the file can still be played in preview mode.
 
-- on macOS/Linux
-  ```shell
-  ./gradlew :composeApp:run
-  ```
-- on Windows
-  ```shell
-  .\gradlew.bat :composeApp:run
-  ```
+![Screenshot](images/screenshot-ilda-test.png)
 
----
+Binaries are available via [GitHub Releases](https://github.com/j4cbo/EtherDreamPlayer/releases). With a JDK
+installed, you can also compile and run directly:
 
-Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html)…
+```shell
+./gradlew :composeApp:run
+```
