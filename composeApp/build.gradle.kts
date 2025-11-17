@@ -18,11 +18,11 @@ kotlin {
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
 
-            implementation("org.jetbrains.compose.material:material-icons-core:1.6.11")
-            implementation("org.jetbrains.compose.material:material-icons-extended:1.6.11")
+            implementation("org.jetbrains.compose.material:material-icons-core:1.7.3")
+            implementation("org.jetbrains.compose.material:material-icons-extended:1.7.3")
 
-            implementation("org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose:2.9.5")
-            implementation("org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose:2.9.5")
+            implementation("org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose:2.9.6")
+            implementation("org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose:2.9.6")
 
             implementation("io.github.vinceglb:filekit-core:0.12.0")
             implementation("io.github.vinceglb:filekit-dialogs:0.12.0")
