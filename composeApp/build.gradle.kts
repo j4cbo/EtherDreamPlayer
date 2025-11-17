@@ -50,7 +50,7 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Exe, TargetFormat.Deb, TargetFormat.Rpm)
             packageName = "EtherDreamPlayer"
-            packageVersion = "1.0.0"
+            packageVersion = "1.0.1"
 
             macOS {
                 packageName = "EtherDreamPlayer"

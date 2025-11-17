@@ -36,9 +36,6 @@ private const val FRAME_SAMPLES = 1600
 // Expected channels of an ILDA WAV file
 private const val ILDA_WAV_CHANNELS = 8
 
-// Expected sample rate for an ILDA WAV file
-private const val ILDA_WAV_SAMPLE_RATE = 48000f
-
 // Audio sample start position
 private const val ILDA_WAV_AUDIO_CHANNEL = 6
 
@@ -64,7 +61,10 @@ class WavPlayer(
     private val displayCallback: (Float, DisplayFrame, Boolean) -> Unit,
     private val dacCallback: (EtherDreamPoints) -> Unit,
 ) {
+    /** Cached format from [file] */
     val format: AudioFormat
+
+    /** Cached length from [file] */
     val lengthFrames: Long
 
     private val lock: ReentrantLock = ReentrantLock()
@@ -72,8 +72,20 @@ class WavPlayer(
 
     private var seekRequest: Float? = null
     fun seek(position: Float) = lock.withLock { seekRequest = position; cond.signal() }
+
+    /**
+     * This is @Volatile to allow unlocked reads by [isPlaybackRequested] for the purpose of UI updates. All
+     * writes, and reads from the playback thread, are done with the lock held.
+     */
+    @Volatile
     private var playRequest: Boolean = false
-    fun play(state: Boolean) = lock.withLock { playRequest = state; cond.signal() }
+
+    /** Request that the player start (if [state] is true) or pause (if [state] is false) playback */
+    fun requestPlayback(state: Boolean) = lock.withLock { playRequest = state; cond.signal() }
+
+    /** Get the current requested playback state (true for play, false for pause) */
+    fun isPlaybackRequested() = playRequest
+
     private var shutdownRequest: Boolean = false
     fun shutdown() = lock.withLock { shutdownRequest = true; cond.signal() }
 
@@ -88,9 +100,6 @@ class WavPlayer(
     init {
         val stream = AudioSystem.getAudioInputStream(file)
         if (stream.format.channels != ILDA_WAV_CHANNELS) {
-            throw Exception("An 8-channel WAV file is required")
-        }
-        if (stream.format.sampleRate != ILDA_WAV_SAMPLE_RATE) {
             throw Exception("An 8-channel WAV file is required")
         }
 

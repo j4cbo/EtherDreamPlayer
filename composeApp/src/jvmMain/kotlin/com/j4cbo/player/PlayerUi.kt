@@ -88,7 +88,6 @@ fun PlayerUi(
 ) {
     // Internal state
     var player by remember { mutableStateOf<WavPlayer?>(null) }
-    var isPlaying by remember { mutableStateOf(false) }
     var sliderPosition by remember { mutableStateOf(0f) }
     var currentFrame by remember { mutableStateOf<DisplayFrame?>(null) }
     var previousFrame by remember { mutableStateOf<DisplayFrame?>(null) }
@@ -152,11 +151,10 @@ fun PlayerUi(
                 }
 
                 PlayPauseButton(
-                    isPlaying = isPlaying,
+                    isPlaying = player.isPlaybackRequested(),
                     enabled = true,
                     onClick = {
-                        isPlaying = !isPlaying
-                        player.play(isPlaying)
+                        player.requestPlayback(!player.isPlaybackRequested())
                     }
                 )
 
