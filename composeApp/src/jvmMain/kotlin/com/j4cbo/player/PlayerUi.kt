@@ -1,4 +1,4 @@
-/**
+/*
  * Ether Dream player - playback UI
  *
  * Copyright 2025 Jacob Potter
@@ -58,16 +58,16 @@ fun PlayPauseButton(
     modifier: Modifier = Modifier,
     isPlaying: Boolean,
     enabled: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     FilledIconButton(
         onClick = onClick,
         enabled = enabled,
-        modifier = modifier
+        modifier = modifier,
     ) {
         Icon(
             imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-            contentDescription = if (isPlaying) "Pause" else "Play"
+            contentDescription = if (isPlaying) "Pause" else "Play",
         )
     }
 }
@@ -84,7 +84,7 @@ private fun Int.formatMinutesSeconds() = "${this / 60}:${(this % 60).toString().
 fun PlayerUi(
     errorString: MutableState<String?>,
     dacCallback: (EtherDreamPoints) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     // Internal state
     var player by remember { mutableStateOf<WavPlayer?>(null) }
@@ -96,32 +96,34 @@ fun PlayerUi(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        val filePickerLauncher = rememberFilePickerLauncher(
-            mode = FileKitMode.Single,
-            type = FileKitType.File(extension = "wav")
-        ) { openedFile ->
-            if (openedFile != null) {
-                try {
-                    // Reset the player whenever a new file is opened
-                    player?.shutdown()
-                    player = WavPlayer(
-                        openedFile.file,
-                        displayCallback = { position, frame, isSeek ->
-                            sliderPosition = position
-                            previousFrame = if (isSeek) null else currentFrame
-                            currentFrame = frame
-                        },
-                        dacCallback = dacCallback
-                    )
-                    currentFrame = null
-                    previousFrame = null
-                    sliderPosition = 0f
-                } catch (e: Exception) {
-                    println(e.message)
-                    errorString.value = e.message
+        val filePickerLauncher =
+            rememberFilePickerLauncher(
+                mode = FileKitMode.Single,
+                type = FileKitType.File(extension = "wav"),
+            ) { openedFile ->
+                if (openedFile != null) {
+                    try {
+                        // Reset the player whenever a new file is opened
+                        player?.shutdown()
+                        player =
+                            WavPlayer(
+                                openedFile.file,
+                                displayCallback = { position, frame, isSeek ->
+                                    sliderPosition = position
+                                    previousFrame = if (isSeek) null else currentFrame
+                                    currentFrame = frame
+                                },
+                                dacCallback = dacCallback,
+                            )
+                        currentFrame = null
+                        previousFrame = null
+                        sliderPosition = 0f
+                    } catch (e: Exception) {
+                        println(e.message)
+                        errorString.value = e.message
+                    }
                 }
             }
-        }
 
         Button(onClick = { filePickerLauncher.launch() }) {
             Text("Open File")
@@ -131,13 +133,17 @@ fun PlayerUi(
             Text("${player.file.name}")
 
             Slider(
-                colors = SliderDefaults.colors(
-                    thumbColor = MaterialTheme.colorScheme.primary,
-                    activeTrackColor = MaterialTheme.colorScheme.secondary,
-                    inactiveTrackColor = MaterialTheme.colorScheme.secondaryContainer,
-                ),
+                colors =
+                    SliderDefaults.colors(
+                        thumbColor = MaterialTheme.colorScheme.primary,
+                        activeTrackColor = MaterialTheme.colorScheme.secondary,
+                        inactiveTrackColor = MaterialTheme.colorScheme.secondaryContainer,
+                    ),
                 value = sliderPosition,
-                onValueChange = { sliderPosition = it; player.seek(it) }
+                onValueChange = {
+                    sliderPosition = it
+                    player.seek(it)
+                },
             )
             Row(
                 modifier = Modifier.fillMaxWidth().safeContentPadding(),
@@ -155,26 +161,27 @@ fun PlayerUi(
                     enabled = true,
                     onClick = {
                         player.requestPlayback(!player.isPlaybackRequested())
-                    }
+                    },
                 )
 
                 Row(
                     modifier = Modifier.weight(1f),
-                    horizontalArrangement = Arrangement.End
+                    horizontalArrangement = Arrangement.End,
                 ) {
                     Text(secondsRemaining.formatMinutesSeconds(), Modifier.padding(end = 8.dp))
                 }
             }
 
             Canvas(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .aspectRatio(1f)
-                    .padding(10.dp)
+                modifier =
+                    Modifier
+                        .fillMaxHeight()
+                        .aspectRatio(1f)
+                        .padding(10.dp),
             ) {
                 drawRect(
                     color = Color.Black,
-                    size = size
+                    size = size,
                 )
 
                 val width = size.width
@@ -183,15 +190,15 @@ fun PlayerUi(
                 fun DisplayFrame.offset(i: Int) =
                     Offset(
                         (0.5f + (xBuffer[i].toFloat() / Short.MAX_VALUE)) * width,
-                        (0.5f - (yBuffer[i].toFloat() / Short.MAX_VALUE)) * width
+                        (0.5f - (yBuffer[i].toFloat() / Short.MAX_VALUE)) * width,
                     )
 
                 fun DisplayFrame.draw() {
                     var offset = offset(0)
-                    for (i in 1 ..< colorBuffer.size-6) {
+                    for (i in 1..<colorBuffer.size - 6) {
                         val nextOffset = offset(i)
                         drawLine(
-                            colorBuffer[i+5],
+                            colorBuffer[i + 5],
                             start = offset,
                             end = nextOffset,
                             cap = StrokeCap.Round,

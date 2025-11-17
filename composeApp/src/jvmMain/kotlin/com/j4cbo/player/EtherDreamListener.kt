@@ -1,4 +1,4 @@
-/**
+/*
  * Ether Dream - UDP broadcast listener
  *
  * Copyright 2025 Jacob Potter
@@ -35,7 +35,7 @@ data class DiscoveredDac(
     val ipAddr: InetAddress,
     val hardwareRev: Int,
     val softwareRev: Int,
-    val bufferCapacity: Int
+    val bufferCapacity: Int,
 )
 
 /** Time after which a DAC should be removed from the list if no packets have been received. */
@@ -79,11 +79,12 @@ object EtherDreamListener {
     private fun discoveryLoop() {
         val discoveredEtherDreams: MutableMap<String, Pair<DiscoveredDac, Long>> = mutableMapOf()
 
-        val socket = DatagramSocket(null).apply {
-            reuseAddress = true // must be set before calling bind()
-            soTimeout = 1200 // milliseconds - this needs to be significantly less than EXPIRY_THRESHOLD
-            bind(InetSocketAddress(BROADCAST_PORT))
-        }
+        val socket =
+            DatagramSocket(null).apply {
+                reuseAddress = true // must be set before calling bind()
+                soTimeout = 1200 // milliseconds - this needs to be significantly less than EXPIRY_THRESHOLD
+                bind(InetSocketAddress(BROADCAST_PORT))
+            }
 
         while (true) {
             val packet = socket.tryReceive(256)
@@ -91,13 +92,14 @@ object EtherDreamListener {
             // If we found a DAC, add it to the list
             val dacAdded: Boolean
             if (packet != null && packet.length == EXPECTED_BROADCAST_LENGTH) {
-                val dac = DiscoveredDac(
-                    id = packet.data.sliceArray(3..5).toHexString(),
-                    ipAddr = packet.address,
-                    hardwareRev = packet.data.uint16At(6),
-                    softwareRev = packet.data.uint16At(8),
-                    bufferCapacity = packet.data.uint16At(10)
-                )
+                val dac =
+                    DiscoveredDac(
+                        id = packet.data.sliceArray(3..5).toHexString(),
+                        ipAddr = packet.address,
+                        hardwareRev = packet.data.uint16At(6),
+                        softwareRev = packet.data.uint16At(8),
+                        bufferCapacity = packet.data.uint16At(10),
+                    )
 
                 dacAdded = !discoveredEtherDreams.contains(dac.id)
                 discoveredEtherDreams[dac.id] = Pair(dac, System.nanoTime())
@@ -107,9 +109,10 @@ object EtherDreamListener {
 
             // Remove any DAC that hasn't been seen in a while
             val now = System.nanoTime()
-            val anyRemoved = discoveredEtherDreams.entries.removeIf {
-                now - it.value.second > EXPIRY_THRESHOLD.inWholeNanoseconds
-            }
+            val anyRemoved =
+                discoveredEtherDreams.entries.removeIf {
+                    now - it.value.second > EXPIRY_THRESHOLD.inWholeNanoseconds
+                }
 
             if (dacAdded || anyRemoved) {
                 // Update listeners

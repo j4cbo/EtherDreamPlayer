@@ -1,4 +1,4 @@
-/**
+/*
  * Ether Dream player - general utilities
  *
  * Copyright 2025 Jacob Potter
@@ -18,21 +18,28 @@
 
 package com.j4cbo.player
 
-fun ByteArray.uint16At(offset: Int) =
-    ((get(offset + 1).toInt() and 0xff) shl 8) or (get(offset).toInt() and 0xff)
+fun ByteArray.uint16At(offset: Int) = ((get(offset + 1).toInt() and 0xff) shl 8) or (get(offset).toInt() and 0xff)
 
-fun ByteArray.int16At(offset: Int) =
-    (get(offset + 1).toInt() shl 8) or (get(offset).toInt() and 0xff)
+fun ByteArray.int16At(offset: Int) = (get(offset + 1).toInt() shl 8) or (get(offset).toInt() and 0xff)
 
 fun ByteArray.uint32At(offset: Int) =
-    (get(offset + 3).toUByte().toUInt() shl 24) or (get(offset + 2).toUByte().toUInt() shl 16) or (get(offset + 1).toUByte().toUInt() shl 8) or get(offset).toUByte().toUInt()
+    (get(offset + 3).toUByte().toUInt() shl 24) or
+        (get(offset + 2).toUByte().toUInt() shl 16) or
+        (get(offset + 1).toUByte().toUInt() shl 8) or
+        get(offset).toUByte().toUInt()
 
-fun ByteArray.setInt16(offset: Int, value: Int) {
+fun ByteArray.setInt16(
+    offset: Int,
+    value: Int,
+) {
     this[offset] = value.toByte()
     this[offset + 1] = (value shr 8).toByte()
 }
 
-fun ByteArray.setInt32(offset: Int, value: Int) {
+fun ByteArray.setInt32(
+    offset: Int,
+    value: Int,
+) {
     this[offset] = value.toByte()
     this[offset + 1] = (value shr 8).toByte()
     this[offset + 2] = (value shr 16).toByte()

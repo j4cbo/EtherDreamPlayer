@@ -1,4 +1,4 @@
-/**
+/*
  * Ether Dream player - WAV handling, audio output, and playback loop
  *
  * Copyright 2025 Jacob Potter
@@ -47,7 +47,7 @@ private val AudioFormat.sampleSizeInBytes get() = sampleSizeInBits / 8
 class DisplayFrame(
     val xBuffer: Array<Int> = Array(FRAME_SAMPLES) { 0 },
     val yBuffer: Array<Int> = Array(FRAME_SAMPLES) { 0 },
-    val colorBuffer: Array<Color> = Array(FRAME_SAMPLES) { Color.Black }
+    val colorBuffer: Array<Color> = Array(FRAME_SAMPLES) { Color.Black },
 ) {
     fun copy() = DisplayFrame(xBuffer.copyOf(), yBuffer.copyOf(), colorBuffer.copyOf())
 }
@@ -71,7 +71,12 @@ class WavPlayer(
     private val cond: Condition = lock.newCondition()
 
     private var seekRequest: Float? = null
-    fun seek(position: Float) = lock.withLock { seekRequest = position; cond.signal() }
+
+    fun seek(position: Float) =
+        lock.withLock {
+            seekRequest = position
+            cond.signal()
+        }
 
     /**
      * This is @Volatile to allow unlocked reads by [isPlaybackRequested] for the purpose of UI updates. All
@@ -81,21 +86,31 @@ class WavPlayer(
     private var playRequest: Boolean = false
 
     /** Request that the player start (if [state] is true) or pause (if [state] is false) playback */
-    fun requestPlayback(state: Boolean) = lock.withLock { playRequest = state; cond.signal() }
+    fun requestPlayback(state: Boolean) =
+        lock.withLock {
+            playRequest = state
+            cond.signal()
+        }
 
     /** Get the current requested playback state (true for play, false for pause) */
     fun isPlaybackRequested() = playRequest
 
     private var shutdownRequest: Boolean = false
-    fun shutdown() = lock.withLock { shutdownRequest = true; cond.signal() }
 
-    private val thread = Thread {
-        try {
-            playFile()
-        } catch (e: Exception) {
-            e.printStackTrace()
+    fun shutdown() =
+        lock.withLock {
+            shutdownRequest = true
+            cond.signal()
         }
-    }
+
+    private val thread =
+        Thread {
+            try {
+                playFile()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
 
     init {
         val stream = AudioSystem.getAudioInputStream(file)
@@ -118,11 +133,12 @@ class WavPlayer(
         val outBuffer = ByteArray(FRAME_SAMPLES * bytesPerSampleOut)
 
         // The input data is little-endian, so if we're reading from a 24-bit WAV we need to offset by one byte.
-        val int16Offset = when (stream.format.sampleSizeInBytes) {
-            2 -> 0
-            3 -> 1
-            else -> throw IllegalStateException("only 16- and 24-bit WAVs are supported")
-        }
+        val int16Offset =
+            when (stream.format.sampleSizeInBytes) {
+                2 -> 0
+                3 -> 1
+                else -> throw IllegalStateException("only 16- and 24-bit WAVs are supported")
+            }
 
         val audioFormat = AudioFormat(stream.format.sampleRate, stream.format.sampleSizeInBits, STEREO, true, false)
         val info = DataLine.Info(SourceDataLine::class.java, audioFormat, outBuffer.size * STEREO)
@@ -135,15 +151,16 @@ class WavPlayer(
 
         var positionSamples = 0L
         while (true) {
-            val (seekRequest, playRequest) = lock.withLock {
-                while (!(playRequest || shutdownRequest || seekRequest != null)) {
-                    cond.await()
+            val (seekRequest, playRequest) =
+                lock.withLock {
+                    while (!(playRequest || shutdownRequest || seekRequest != null)) {
+                        cond.await()
+                    }
+                    if (shutdownRequest) {
+                        break
+                    }
+                    Pair(seekRequest, playRequest).also { seekRequest = null }
                 }
-                if (shutdownRequest) {
-                    break
-                }
-                Pair(seekRequest, playRequest).also { seekRequest = null }
-            }
 
             // At this point, either seekRequest or playRequest is true. Either way, we should read
             // one frame to render it...
@@ -166,7 +183,7 @@ class WavPlayer(
                     destination = outBuffer,
                     destinationOffset = i * bytesPerSampleOut,
                     startIndex = i * bytesPerSampleIn + (ILDA_WAV_AUDIO_CHANNEL * stream.format.sampleSizeInBytes),
-                    endIndex = i * bytesPerSampleIn + ((ILDA_WAV_AUDIO_CHANNEL + STEREO) * stream.format.sampleSizeInBytes)
+                    endIndex = i * bytesPerSampleIn + ((ILDA_WAV_AUDIO_CHANNEL + STEREO) * stream.format.sampleSizeInBytes),
                 )
 
                 val x = -channel(0) / 2
@@ -177,11 +194,12 @@ class WavPlayer(
 
                 frame.setPoint(i, x, y, r, g, b)
 
-                displayFrame.colorBuffer[i] = Color(
-                    red = max(0, min(r shr 8, 255)),
-                    green = max(0, min(g shr 8, 255)),
-                    blue = max(0, min(b shr 8, 255)),
-                )
+                displayFrame.colorBuffer[i] =
+                    Color(
+                        red = max(0, min(r shr 8, 255)),
+                        green = max(0, min(g shr 8, 255)),
+                        blue = max(0, min(b shr 8, 255)),
+                    )
                 displayFrame.xBuffer[i] = x
                 displayFrame.yBuffer[i] = y
             }

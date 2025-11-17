@@ -1,4 +1,4 @@
-/**
+/*
  * Ether Dream player - main
  *
  * Copyright 2025 Jacob Potter
@@ -21,11 +21,12 @@ package com.j4cbo.player
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 
-fun main() = application {
-    Window(
-        onCloseRequest = ::exitApplication,
-        title = "Ether Dream Player",
-    ) {
-        App()
+fun main() =
+    application {
+        Window(
+            onCloseRequest = ::exitApplication,
+            title = "Ether Dream Player",
+        ) {
+            App()
+        }
     }
-}

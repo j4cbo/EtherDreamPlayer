@@ -1,9 +1,12 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+import org.jmailen.gradle.kotlinter.tasks.FormatTask
+import org.jmailen.gradle.kotlinter.tasks.LintTask
 
 plugins {
     id("org.jetbrains.kotlin.multiplatform")
     id("org.jetbrains.kotlin.plugin.compose")
     id("org.jetbrains.compose")
+    id("org.jmailen.kotlinter") version "5.3.0"
 }
 
 kotlin {
@@ -38,7 +41,13 @@ kotlin {
     }
 }
 
+tasks.withType<FormatTask> {
+    exclude { it.file.path.contains("/build/generated") }
+}
 
+tasks.withType<LintTask> {
+    exclude { it.file.path.contains("/build/generated") }
+}
 compose.desktop {
     application {
         mainClass = "com.j4cbo.player.MainKt"

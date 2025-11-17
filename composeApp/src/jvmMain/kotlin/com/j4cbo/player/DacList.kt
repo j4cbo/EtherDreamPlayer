@@ -1,4 +1,4 @@
-/**
+/*
  * Ether Dream player - DAC list view and viewmodel
  *
  * Copyright 2025 Jacob Potter
@@ -53,23 +53,26 @@ class DacListViewModel : ViewModel() {
 @Composable
 fun DacList(
     viewModel: DacListViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Column(modifier) {
         Text(
             text = if (viewModel.dacs.value.isNotEmpty()) "Available DACs" else "No Ether Dream DACs found",
             style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier
-                .padding(start = 5.dp, end = 5.dp, top = 10.dp)
-                .fillMaxWidth(),
+            modifier =
+                Modifier
+                    .padding(start = 5.dp, end = 5.dp, top = 10.dp)
+                    .fillMaxWidth(),
             textAlign = TextAlign.Center,
         )
 
-        for (dac in viewModel.dacs.value.values.sortedBy { it.id }) {
+        for (dac in viewModel.dacs.value.values
+            .sortedBy { it.id }) {
             Row(
                 Modifier
                     .fillMaxWidth()
                     .height(56.dp)
+                    .padding(horizontal = 16.dp)
                     .selectable(
                         selected = (dac.id == viewModel.selectedDacId.value),
                         onClick = {
@@ -80,19 +83,18 @@ fun DacList(
                                 viewModel.connection.value = EtherDream(dac)
                             }
                         },
-                        role = Role.RadioButton
-                    )
-                    .padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically
+                        role = Role.RadioButton,
+                    ),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 RadioButton(
                     selected = (dac.id == viewModel.selectedDacId.value),
-                    onClick = null // onclick handled at row level
+                    onClick = null, // onclick handled at row level
                 )
                 Text(
                     text = dac.id,
                     style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.padding(start = 16.dp)
+                    modifier = Modifier.padding(start = 16.dp),
                 )
             }
         }

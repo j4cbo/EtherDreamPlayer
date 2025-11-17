@@ -1,4 +1,4 @@
-/**
+/*
  * Ether Dream - TCP driver
  *
  * Copyright 2025 Jacob Potter
@@ -27,8 +27,8 @@ import java.net.StandardSocketOptions
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.Condition
 import java.util.concurrent.locks.ReentrantLock
-import kotlin.concurrent.withLock
 import kotlin.concurrent.Volatile
+import kotlin.concurrent.withLock
 import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.min
@@ -57,7 +57,10 @@ const val TARGET_FULLNESS = 3600
 private val COMM_TIMEOUT = 500.milliseconds
 
 enum class DacState {
-    IDLE, PREPARED, PLAYING, INVALID
+    IDLE,
+    PREPARED,
+    PLAYING,
+    INVALID,
 }
 
 /** Buffer fullness level at which we should tell the DAC to start playing */
@@ -92,19 +95,24 @@ private const val RATE_CHANGE_FLAG = 0x80
 private const val RATE_CHANGE_OFFSET = 1
 
 private val start = System.nanoTime()
+
 private fun trace(message: String) {
     val deltaT = (System.nanoTime() - start) / 1000000000.0
     println(String.format("[%12.6f] %s", deltaT, message))
 }
 
 /** Represents a parsed dac_status */
-class DacStatus(buffer: ByteArray, offset: Int = 0) {
-    val state = when (buffer[offset + 2]) {
-        0.toByte() -> DacState.IDLE
-        1.toByte() -> DacState.PREPARED
-        2.toByte() -> DacState.PLAYING
-        else -> DacState.INVALID
-    }
+class DacStatus(
+    buffer: ByteArray,
+    offset: Int = 0,
+) {
+    val state =
+        when (buffer[offset + 2]) {
+            0.toByte() -> DacState.IDLE
+            1.toByte() -> DacState.PREPARED
+            2.toByte() -> DacState.PLAYING
+            else -> DacState.INVALID
+        }
 
     val fullness = buffer.uint16At(offset + 10)
     val rate = buffer.uint32At(offset + 12)
@@ -116,10 +124,14 @@ class DacStatus(buffer: ByteArray, offset: Int = 0) {
 }
 
 /** Represents a parsed dac_response */
-class DacResponse(buffer: ByteArray, offset: Int = 0) {
+class DacResponse(
+    buffer: ByteArray,
+    offset: Int = 0,
+) {
     val response = buffer[offset]
     val command = buffer[offset + 1]
     val status = DacStatus(buffer, offset + 2)
+
     companion object {
         const val SIZE = 2 + DacStatus.SIZE
     }
@@ -134,12 +146,19 @@ class DacResponse(buffer: ByteArray, offset: Int = 0) {
  */
 class EtherDreamPoints private constructor(
     val data: ByteArray,
-    val rate: Int
+    val rate: Int,
 ) {
     internal val points get() = data.size / POINT_SIZE
 
     /** Fill in an x, y, r, g, b value at index [i]. */
-    fun setPoint(i: Int, x: Int, y: Int, r: Int, g: Int, b: Int) {
+    fun setPoint(
+        i: Int,
+        x: Int,
+        y: Int,
+        r: Int,
+        g: Int,
+        b: Int,
+    ) {
         val x1 = max(Short.MIN_VALUE.toInt(), min(x, Short.MAX_VALUE.toInt()))
         val y1 = max(Short.MIN_VALUE.toInt(), min(y, Short.MAX_VALUE.toInt()))
         val r1 = max(0, min(r, UShort.MAX_VALUE.toInt()))
@@ -158,7 +177,10 @@ class EtherDreamPoints private constructor(
     }
 
     companion object {
-        fun allocate(points: Int, rate: Int) = EtherDreamPoints(ByteArray(points * POINT_SIZE), rate)
+        fun allocate(
+            points: Int,
+            rate: Int,
+        ) = EtherDreamPoints(ByteArray(points * POINT_SIZE), rate)
     }
 }
 
@@ -168,7 +190,12 @@ class EtherDreamPoints private constructor(
  * This accesses no internal [EtherDreamConnection] state, so it's written as a helper on [OutputStream] instead
  * of a member of [EtherDreamConnection]; it therefore also doesn't need to be called with the connection's lock held.
  */
-private fun OutputStream.sendDataBlock(data: ByteArray, inputOffsetPoints: Int, inputLengthPoints: Int, rate: Int?) {
+private fun OutputStream.sendDataBlock(
+    data: ByteArray,
+    inputOffsetPoints: Int,
+    inputLengthPoints: Int,
+    rate: Int?,
+) {
     val inputLengthBytes = inputLengthPoints * POINT_SIZE
     val outputBuffer: ByteArray
     val outputOffsetBytes: Int
@@ -189,7 +216,7 @@ private fun OutputStream.sendDataBlock(data: ByteArray, inputOffsetPoints: Int, 
         destination = outputBuffer,
         destinationOffset = dataOffsetBytes,
         startIndex = inputOffsetPoints * POINT_SIZE,
-        endIndex = inputOffsetPoints * POINT_SIZE + inputLengthBytes
+        endIndex = inputOffsetPoints * POINT_SIZE + inputLengthBytes,
     )
     if (rate != null) {
         outputBuffer[dataOffsetBytes + RATE_CHANGE_OFFSET] =
@@ -207,7 +234,7 @@ private fun OutputStream.sendDataBlock(data: ByteArray, inputOffsetPoints: Int, 
 private class EtherDreamConnection(
     dac: DiscoveredDac,
     private val lock: ReentrantLock,
-    private val condition: Condition
+    private val condition: Condition,
 ) {
     private val socket: Socket
     private val outputStream: OutputStream
@@ -274,21 +301,22 @@ private class EtherDreamConnection(
         try {
             while (true) {
                 // Read a response from the DAC
-                val response = try {
-                    readResponse()
-                } catch (_: SocketTimeoutException) {
-                    // If we're not currently playing a frame, this is expected
-                    lock.withLock {
-                        if (frames.isEmpty()) {
-                           continue
-                        } else {
-                            trace("Receiver thread timeout")
-                            shuttingDown = true
-                            condition.signalAll()
-                            return
+                val response =
+                    try {
+                        readResponse()
+                    } catch (_: SocketTimeoutException) {
+                        // If we're not currently playing a frame, this is expected
+                        lock.withLock {
+                            if (frames.isEmpty()) {
+                                continue
+                            } else {
+                                trace("Receiver thread timeout")
+                                shuttingDown = true
+                                condition.signalAll()
+                                return
+                            }
                         }
                     }
-                }
 
                 lock.withLock {
                     status = response.status
@@ -312,7 +340,7 @@ private class EtherDreamConnection(
                             throw IllegalStateException(
                                 "unexpected meta ack for ${
                                     response.command.toInt().toChar()
-                                } (${response.command.toInt()}"
+                                } (${response.command.toInt()}",
                             )
                         }
                         pendingMetaAcks -= 1
@@ -370,13 +398,14 @@ private class EtherDreamConnection(
                 }
 
                 // How many points do we expect to have been consumed by playback since we last received an ack?
-                val expectedUsed = if (status.state == DacState.PLAYING) {
-                    val timeDiff = System.nanoTime() - statusReceivedNanoTime
-                    require(timeDiff >= 0) { "nanoTime can't go backwards" }
-                    timeDiff * frame.rate / 1000000000
-                } else {
-                    0
-                }
+                val expectedUsed =
+                    if (status.state == DacState.PLAYING) {
+                        val timeDiff = System.nanoTime() - statusReceivedNanoTime
+                        require(timeDiff >= 0) { "nanoTime can't go backwards" }
+                        timeDiff * frame.rate / 1000000000
+                    } else {
+                        0
+                    }
 
                 // Based on that, how many points do we expect to be in the buffer?
                 val expectedFullness = status.fullness + unackedBlocks.sum() - expectedUsed
@@ -387,8 +416,11 @@ private class EtherDreamConnection(
                     status.fullness < 1000 ||
                     unackedBlocks.size > 30 ||
                     pendingMetaAcks > 4 ||
-                    expectedUsed > 1000) {
-                    trace("TX: ${status.fullness} + ${unackedBlocks.sum()} (${unackedBlocks.size} d $pendingMetaAcks m) - $expectedUsed = expected $expectedFullness, capacity $capacity")
+                    expectedUsed > 1000
+                ) {
+                    trace(
+                        "TX: ${status.fullness} + ${unackedBlocks.sum()} (${unackedBlocks.size} d $pendingMetaAcks m) - $expectedUsed = expected $expectedFullness, capacity $capacity",
+                    )
                 }
 
                 if (capacity < MIN_POINTS_PER_SEND) {
@@ -429,13 +461,14 @@ private class EtherDreamConnection(
                 }
 
                 // Check whether there's a rate change; if so, we'll send 2 commands instead of 1
-                sendRate = if (frame.rate != lastRate) {
-                    pendingMetaAcks += 1
-                    lastRate = frame.rate
-                    frame.rate
-                } else {
-                    null
-                }
+                sendRate =
+                    if (frame.rate != lastRate) {
+                        pendingMetaAcks += 1
+                        lastRate = frame.rate
+                        frame.rate
+                    } else {
+                        null
+                    }
 
                 unackedBlocks.add(sendPoints)
             }
@@ -483,8 +516,9 @@ private class EtherDreamConnection(
     fun isReadyUnlocked() = frames.size <= 1
 }
 
-class EtherDream(val dac: DiscoveredDac) {
-
+class EtherDream(
+    val dac: DiscoveredDac,
+) {
     /** Shared Lock across the parent [EtherDream] and child [EtherDreamConnection], to handle reconnects. */
     private val lock = ReentrantLock()
 

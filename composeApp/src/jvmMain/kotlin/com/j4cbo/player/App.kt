@@ -1,4 +1,4 @@
-/**
+/*
  * Ether Dream player - top level Compose app
  *
  * Copyright 2025 Jacob Potter
@@ -45,41 +45,43 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 @Preview
 fun App(
     dacListViewModel: DacListViewModel = DacListViewModel(),
-    errorString: MutableState<String?> = mutableStateOf(null)
+    errorString: MutableState<String?> = mutableStateOf(null),
 ) {
     MaterialTheme(
-        colorScheme = com.j4cbo.player.theme.lightScheme
+        colorScheme = com.j4cbo.player.theme.lightScheme,
     ) {
         // If there's been an error, pop up an alert modal
         errorString.value?.let { showErrorString ->
             AlertDialog(
                 onDismissRequest = { errorString.value = null },
                 text = { Text(showErrorString) },
-                confirmButton = { TextButton(onClick = { errorString.value = null }) { Text("OK") } }
+                confirmButton = { TextButton(onClick = { errorString.value = null }) { Text("OK") } },
             )
         }
 
         Row {
             PlayerUi(
-                modifier = Modifier
-                    .background(MaterialTheme.colorScheme.surface)
-                    .safeContentPadding()
-                    .fillMaxHeight()
-                    .weight(0.75f),
+                modifier =
+                    Modifier
+                        .background(MaterialTheme.colorScheme.surface)
+                        .safeContentPadding()
+                        .fillMaxHeight()
+                        .weight(0.75f),
                 errorString = errorString,
                 dacCallback = {
                     dacListViewModel.connection.value?.addFrame(it)
-                }
+                },
             )
             VerticalDivider()
             DacList(
                 viewModel = dacListViewModel,
-                modifier = Modifier
-                    .background(MaterialTheme.colorScheme.surface)
-                    .safeContentPadding()
-                    .fillMaxHeight()
-                    .weight(0.25f)
-                    .selectableGroup()
+                modifier =
+                    Modifier
+                        .background(MaterialTheme.colorScheme.surface)
+                        .safeContentPadding()
+                        .fillMaxHeight()
+                        .weight(0.25f)
+                        .selectableGroup(),
             )
         }
     }
