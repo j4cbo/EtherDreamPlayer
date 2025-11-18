@@ -1,6 +1,6 @@
 ## Ether Dream WAV Player
 
-This is tool to play 8-channel WAV files to an Ether Dream, such as those backed up
+This is a tool to play 8-channel WAV files to an Ether Dream, such as those backed up
 from an ADAT tape. Channels 7 and 8 are used as audio and played out the system audio
 device; channels 1-5 are X, Y, R, G, B, respectively. Channel 6 is ignored.
 
