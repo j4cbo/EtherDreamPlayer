@@ -186,8 +186,8 @@ class WavPlayer(
                     endIndex = i * bytesPerSampleIn + ((ILDA_WAV_AUDIO_CHANNEL + STEREO) * stream.format.sampleSizeInBytes),
                 )
 
-                val x = -channel(0) / 2
-                val y = -channel(1) / 2
+                val x = -channel(0)
+                val y = -channel(1)
                 val r = -channel(2) * 2
                 val g = -channel(3) * 2
                 val b = -channel(4) * 2

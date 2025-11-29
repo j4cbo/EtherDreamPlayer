@@ -189,8 +189,8 @@ fun PlayerUi(
                 /** Calculate the UI [Offset] corresponding to the point at index [i] in the current frame */
                 fun DisplayFrame.offset(i: Int) =
                     Offset(
-                        (0.5f + (xBuffer[i].toFloat() / Short.MAX_VALUE)) * width,
-                        (0.5f - (yBuffer[i].toFloat() / Short.MAX_VALUE)) * width,
+                        (0.5f + (xBuffer[i].toFloat() / (Short.MAX_VALUE * 2))) * width,
+                        (0.5f - (yBuffer[i].toFloat() / (Short.MAX_VALUE * 2))) * width,
                     )
 
                 fun DisplayFrame.draw() {
