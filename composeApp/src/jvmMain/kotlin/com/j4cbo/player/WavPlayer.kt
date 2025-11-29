@@ -18,6 +18,7 @@
 
 package com.j4cbo.player
 
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.graphics.Color
 import java.io.File
 import java.util.concurrent.locks.Condition
@@ -78,22 +79,17 @@ class WavPlayer(
             cond.signal()
         }
 
-    /**
-     * This is @Volatile to allow unlocked reads by [isPlaybackRequested] for the purpose of UI updates. All
-     * writes, and reads from the playback thread, are done with the lock held.
-     */
-    @Volatile
-    private var playRequest: Boolean = false
+    private val playRequest = mutableStateOf(false)
 
     /** Request that the player start (if [state] is true) or pause (if [state] is false) playback */
     fun requestPlayback(state: Boolean) =
         lock.withLock {
-            playRequest = state
+            playRequest.value = state
             cond.signal()
         }
 
     /** Get the current requested playback state (true for play, false for pause) */
-    fun isPlaybackRequested() = playRequest
+    fun isPlaybackRequested() = playRequest.value
 
     private var shutdownRequest: Boolean = false
 
@@ -153,7 +149,7 @@ class WavPlayer(
         while (true) {
             val (seekRequest, playRequest) =
                 lock.withLock {
-                    while (!(playRequest || shutdownRequest || seekRequest != null)) {
+                    while (!(playRequest.value || shutdownRequest || seekRequest != null)) {
                         cond.await()
                     }
                     if (shutdownRequest) {
@@ -210,7 +206,7 @@ class WavPlayer(
                 displayCallback(positionSamples.toFloat() / stream.frameLength.toFloat(), displayFrame.copy(), false)
             }
 
-            if (playRequest) {
+            if (playRequest.value) {
                 soundLine.write(outBuffer, 0, samplesRead * bytesPerSampleOut)
                 dacCallback(frame)
             }
