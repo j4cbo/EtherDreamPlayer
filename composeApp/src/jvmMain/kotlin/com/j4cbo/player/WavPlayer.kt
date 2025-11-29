@@ -122,6 +122,16 @@ class WavPlayer(
 
     private fun playFile() {
         var stream = AudioSystem.getAudioInputStream(file)
+        var positionSamples = 0L
+
+        fun resetStream(newPositionSamples: Long) {
+            // AudioInputStream.skip() can only move forwards, not backwards, so to seek backwards we replace
+            // the stream entirely and seek forward to the new position. It's inefficient but it works :/
+            stream.close()
+            positionSamples = newPositionSamples
+            stream = AudioSystem.getAudioInputStream(file)
+            stream.skip(positionSamples * stream.format.frameSize)
+        }
 
         val bytesPerSampleIn = stream.format.sampleSizeInBytes * stream.format.channels
         val inBuffer = ByteArray(FRAME_SAMPLES * bytesPerSampleIn)
@@ -145,7 +155,6 @@ class WavPlayer(
 
         val displayFrame = DisplayFrame()
 
-        var positionSamples = 0L
         while (true) {
             val (seekRequest, playRequest) =
                 lock.withLock {
@@ -162,12 +171,18 @@ class WavPlayer(
             // one frame to render it...
 
             if (seekRequest != null) {
-                stream = AudioSystem.getAudioInputStream(file)
-                positionSamples = (stream.frameLength * seekRequest).toLong()
-                stream.skip(positionSamples * stream.format.frameSize)
+                resetStream((stream.frameLength * seekRequest).toLong())
             }
 
             val bytesRead = stream.read(inBuffer)
+            if (bytesRead <= 0) {
+                resetStream(0)
+                lock.withLock {
+                    this.playRequest.value = false
+                }
+                continue
+            }
+
             val samplesRead = bytesRead / bytesPerSampleIn
 
             val frame = EtherDreamPoints.allocate(samplesRead, stream.format.sampleRate.toInt())
