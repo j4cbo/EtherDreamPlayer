@@ -23,7 +23,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeContentPadding
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
@@ -55,7 +57,11 @@ fun DacList(
     viewModel: DacListViewModel,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier) {
+    Column(
+        modifier
+            .safeContentPadding()
+            .selectableGroup(),
+    ) {
         Text(
             text = if (viewModel.dacs.value.isNotEmpty()) "Available DACs" else "No Ether Dream DACs found",
             style = MaterialTheme.typography.bodySmall,

@@ -59,6 +59,7 @@ class DisplayFrame(
  */
 class WavPlayer(
     val file: File,
+    val dacControlsViewModel: DacControlsViewModel,
     private val displayCallback: (Float, DisplayFrame, Boolean) -> Unit,
     private val dacCallback: (EtherDreamPoints) -> Unit,
 ) {
@@ -155,6 +156,8 @@ class WavPlayer(
 
         val displayFrame = DisplayFrame()
 
+        val dacBuffer = ArrayDeque<EtherDreamPoints>()
+
         while (true) {
             val (seekRequest, playRequest) =
                 lock.withLock {
@@ -172,6 +175,7 @@ class WavPlayer(
 
             if (seekRequest != null) {
                 resetStream((stream.frameLength * seekRequest).toLong())
+                dacBuffer.clear()
             }
 
             val bytesRead = stream.read(inBuffer)
@@ -186,6 +190,9 @@ class WavPlayer(
             val samplesRead = bytesRead / bytesPerSampleIn
 
             val frame = EtherDreamPoints.allocate(samplesRead, stream.format.sampleRate.toInt())
+
+            val brightness = dacControlsViewModel.brightness.value
+            val xyScale = (dacControlsViewModel.size.value * (1 - MINIMUM_SIZE)) + MINIMUM_SIZE
 
             for (i in 0..<samplesRead) {
                 fun channel(n: Int) = inBuffer.int16At(i * bytesPerSampleIn + int16Offset + (n * stream.format.sampleSizeInBytes))
@@ -203,7 +210,14 @@ class WavPlayer(
                 val g = -channel(3) * 2
                 val b = -channel(4) * 2
 
-                frame.setPoint(i, x, y, r, g, b)
+                frame.setPoint(
+                    i = i,
+                    x = (x * xyScale).toInt(),
+                    y = (y * xyScale).toInt(),
+                    r = (r * brightness).toInt(),
+                    g = (g * brightness).toInt(),
+                    b = (b * brightness).toInt(),
+                )
 
                 displayFrame.colorBuffer[i] =
                     Color(
@@ -215,15 +229,26 @@ class WavPlayer(
                 displayFrame.yBuffer[i] = y
             }
 
-            if (seekRequest != null) {
-                displayCallback(seekRequest, displayFrame.copy(), true)
-            } else {
-                displayCallback(positionSamples.toFloat() / stream.frameLength.toFloat(), displayFrame.copy(), false)
+            val position = seekRequest ?: (positionSamples.toFloat() / stream.frameLength.toFloat())
+            displayCallback(position, displayFrame, true)
+
+            // delay slider from 0 to 100% corresponds to delay from 0 to 2 seconds
+            val delaySeconds = dacControlsViewModel.delay.value * 2.0
+            val targetFullness = ((stream.format.sampleRate * delaySeconds) / FRAME_SAMPLES).toInt()
+
+            if (dacBuffer.size <= targetFullness) {
+                dacBuffer.addFirst(frame)
             }
 
             if (playRequest.value) {
                 soundLine.write(outBuffer, 0, samplesRead * bytesPerSampleOut)
-                dacCallback(frame)
+            }
+
+            if (dacBuffer.size > targetFullness) {
+                val poppedFrame = dacBuffer.removeLast()
+                if (playRequest.value) {
+                    dacCallback(poppedFrame)
+                }
             }
 
             positionSamples += samplesRead

@@ -27,8 +27,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContentPadding
-import androidx.compose.material.Slider
-import androidx.compose.material.SliderDefaults
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -36,6 +34,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
@@ -84,6 +84,7 @@ private fun Int.formatMinutesSeconds() = "${this / 60}:${(this % 60).toString().
 fun PlayerUi(
     errorString: MutableState<String?>,
     dacCallback: (EtherDreamPoints) -> Unit,
+    dacControlsViewModel: DacControlsViewModel,
     modifier: Modifier = Modifier,
 ) {
     // Internal state
@@ -114,6 +115,7 @@ fun PlayerUi(
                                     currentFrame = frame
                                 },
                                 dacCallback = dacCallback,
+                                dacControlsViewModel = dacControlsViewModel,
                             )
                         currentFrame = null
                         previousFrame = null
@@ -144,6 +146,7 @@ fun PlayerUi(
                     sliderPosition = it
                     player.seek(it)
                 },
+                modifier = Modifier.padding(start = 10.dp, end = 10.dp),
             )
             Row(
                 modifier = Modifier.fillMaxWidth().safeContentPadding(),

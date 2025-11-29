@@ -19,7 +19,9 @@
 package com.j4cbo.player
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.safeContentPadding
 import androidx.compose.foundation.selection.selectableGroup
@@ -45,6 +47,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 @Preview
 fun App(
     dacListViewModel: DacListViewModel = DacListViewModel(),
+    dacControlsViewModel: DacControlsViewModel = DacControlsViewModel(),
     errorString: MutableState<String?> = mutableStateOf(null),
 ) {
     MaterialTheme(
@@ -71,18 +74,20 @@ fun App(
                 dacCallback = {
                     dacListViewModel.connection.value?.addFrame(it)
                 },
+                dacControlsViewModel = dacControlsViewModel,
             )
             VerticalDivider()
-            DacList(
-                viewModel = dacListViewModel,
+            Column(
                 modifier =
                     Modifier
                         .background(MaterialTheme.colorScheme.surface)
-                        .safeContentPadding()
                         .fillMaxHeight()
-                        .weight(0.25f)
-                        .selectableGroup(),
-            )
+                        .weight(0.25f),
+            ) {
+                DacList(dacListViewModel)
+                Spacer(Modifier.weight(1f))
+                DacControls(dacControlsViewModel)
+            }
         }
     }
 }
